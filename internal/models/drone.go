@@ -6,13 +6,18 @@ import (
 	"drone/internal/utils"
 )
 
+const (
+	// GroundLevel уровень земли
+	GroundLevel = 0.0
+)
+
 // DronePhysics представляет физические характеристики дрона
 type DronePhysics struct {
-	Velocity    *utils.Vector3D // Текущая скорость
-	Direction   *utils.Vector3D // Вектор направления
-	MaxSpeed    float64         // Максимальная скорость
-	Acceleration float64        // Ускорение
-	Drag        float64         // Сопротивление воздуха (0-1)
+	Velocity     *utils.Vector3D // Текущая скорость
+	Direction    *utils.Vector3D // Вектор направления
+	MaxSpeed     float64         // Максимальная скорость
+	Acceleration float64         // Ускорение
+	Drag         float64         // Сопротивление воздуха (0-1)
 }
 
 // Drone представляет главный дрон
@@ -87,6 +92,18 @@ func (d *Drone) GetChildren() []*ChildDrone {
 	result := make([]*ChildDrone, len(d.children))
 	copy(result, d.children)
 	return result
+}
+
+// RangeChildren вызывает функцию для каждого дочернего дрона без создания слайса
+func (d *Drone) RangeChildren(fn func(*ChildDrone) bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	for _, child := range d.children {
+		if !fn(child) {
+			return
+		}
+	}
 }
 
 // GetPosition возвращает копию текущей позиции
@@ -182,8 +199,8 @@ func (d *Drone) ClampY(minY float64) {
 	if d.Position.Y < minY {
 		d.Position.Y = minY
 	}
-	// Также обнуляем вертикальную скорость при приземлении
-	if d.Position.Y == minY && d.Physics.Velocity.Y < 0 {
+	// Обнуляем вертикальную скорость при приземлении
+	if utils.IsFloatEqual(d.Position.Y, minY) && d.Physics.Velocity.Y < 0 {
 		d.Physics.Velocity.Y = 0
 	}
 }
@@ -228,7 +245,7 @@ func (cd *ChildDrone) ClampY(minY float64) {
 	if cd.Position.Y < minY {
 		cd.Position.Y = minY
 	}
-	if cd.Position.Y == minY && cd.Physics.Velocity.Y < 0 {
+	if utils.IsFloatEqual(cd.Position.Y, minY) && cd.Physics.Velocity.Y < 0 {
 		cd.Physics.Velocity.Y = 0
 	}
 }

@@ -42,7 +42,7 @@ func (m *Manager) Init() error {
 }
 
 // SetSimulation устанавливает сервис симуляции для визуализатора
-func (m *Manager) SetSimulation(sim *services.SimulationService) {
+func (m *Manager) SetSimulation(sim services.SimulationProvider) {
 	if ov, ok := m.visualizer.(*OpenGLVisualizer); ok {
 		ov.SetSimulation(sim)
 	}

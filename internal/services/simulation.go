@@ -13,6 +13,14 @@ import (
 	"drone/internal/utils"
 )
 
+// SimulationProvider интерфейс для доступа к симуляции из визуализатора
+type SimulationProvider interface {
+	GetMainDrone() *models.Drone
+	GetInputState() InputState
+	SetInput(InputState)
+	UpdateMainDrone(deltaTime float64)
+}
+
 // SimulationService сервис симуляции дронов
 type SimulationService struct {
 	config     *config.Config
@@ -23,18 +31,23 @@ type SimulationService struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	controller       *DroneController
-	mainDroneCtrl    *MainDroneController
-	inputState       InputState
+	controller     *DroneController
+	mainDroneCtrl  *MainDroneController
+	inputState     InputState
+	rng            *rand.Rand
 }
+
+// Проверка что SimulationService реализует SimulationProvider
+var _ SimulationProvider = (*SimulationService)(nil)
 
 // NewSimulationService создаёт новый сервис симуляции
 func NewSimulationService(cfg *config.Config, logger *slog.Logger) *SimulationService {
 	return &SimulationService{
-		config:         cfg,
-		logger:         logger,
-		controller:     NewDroneController(cfg),
-		mainDroneCtrl:  NewMainDroneController(),
+		config:        cfg,
+		logger:        logger,
+		controller:    NewDroneController(cfg),
+		mainDroneCtrl: NewMainDroneController(),
+		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -58,10 +71,7 @@ func (s *SimulationService) Init() error {
 // Start запускает симуляцию
 func (s *SimulationService) Start() error {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-	
-	// Инициализация rand
-	rand.Seed(time.Now().UnixNano())
-	
+
 	fmt.Printf("Главный дрон %d запущен в позиции (%.2f, %.2f, %.2f)\n",
 		s.mainDrone.ID,
 		s.mainDrone.GetPosition().X,
@@ -85,18 +95,23 @@ func (s *SimulationService) Start() error {
 // createChildDrones создаёт и запускает дочерние дроны
 func (s *SimulationService) createChildDrones() error {
 	center := s.mainDrone.GetPosition()
-	
+
 	for i := 0; i < s.config.DroneCount; i++ {
-		position := models.CalculateSphericalPosition(center, s.config.MinDistance, s.config.MaxDistance)
+		position := models.CalculateSphericalPosition(center, s.config.MinDistance, s.config.MaxDistance, s.rng)
 		child := models.NewChildDrone(i, position)
-		
+
 		s.mainDrone.AddChild(child)
-		
+
 		s.wg.Add(1)
 		go s.runChildDrone(child)
 	}
-	
+
 	return nil
+}
+
+// GetRNG возвращает генератор случайных чисел для использования в других компонентах
+func (s *SimulationService) GetRNG() *rand.Rand {
+	return s.rng
 }
 
 // runChildDrone запускает поведение дочернего дрона

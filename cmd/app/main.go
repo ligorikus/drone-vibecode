@@ -109,7 +109,7 @@ func main() {
 		}
 
 		if err := visManager.Close(); err != nil {
-			logger.Warn("Ошибка при закрытии визуализации", "error", err)
+			logger.Error("Ошибка при закрытии визуализации", "error", err)
 		}
 	} else {
 		// Без визуализации - просто ждём сигнал

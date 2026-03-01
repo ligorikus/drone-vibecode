@@ -2,22 +2,25 @@ package models
 
 import (
 	"math"
+	"math/rand"
 	"testing"
+	"time"
 
 	"drone/internal/utils"
 )
 
 func TestCalculateSphericalPosition(t *testing.T) {
 	center := utils.NewVector3D(0, 0, 0)
-	
-	pos := CalculateSphericalPosition(center, 5, 10)
-	
-// Проверяем, что позиция не nil
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	pos := CalculateSphericalPosition(center, 5, 10, rng)
+
+	// Проверяем, что позиция не nil
 	if pos == nil {
 		t.Fatal("Position is nil")
 	}
-	
-// Проверяем, что расстояние в пределах диапазона
+
+	// Проверяем, что расстояние в пределах диапазона
 	distance := center.Distance(pos)
 	if distance < 5 || distance > 10 {
 		t.Errorf("Distance out of range [5, 10]: %f", distance)
@@ -26,10 +29,11 @@ func TestCalculateSphericalPosition(t *testing.T) {
 
 func TestCalculateSphericalPositionNonZeroCenter(t *testing.T) {
 	center := utils.NewVector3D(10, 20, 30)
-	
-	pos := CalculateSphericalPosition(center, 5, 10)
-	
-// Расстояние от центра должно быть в диапазоне
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	pos := CalculateSphericalPosition(center, 5, 10, rng)
+
+	// Расстояние от центра должно быть в диапазоне
 	distance := center.Distance(pos)
 	if distance < 5 || distance > 10 {
 		t.Errorf("Distance out of range [5, 10]: %f", distance)

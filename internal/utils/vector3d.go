@@ -5,17 +5,17 @@ import (
 	"math/rand"
 )
 
-// Vector3D represents a 3D vector
+// Vector3D представляет 3D вектор
 type Vector3D struct {
 	X, Y, Z float64
 }
 
-// NewVector3D creates a new 3D vector
+// NewVector3D создаёт новый 3D вектор
 func NewVector3D(x, y, z float64) *Vector3D {
 	return &Vector3D{X: x, Y: y, Z: z}
 }
 
-// NewRandomVector3D creates a random 3D vector with X/Z in range [-maxRange, maxRange] and Y at 0
+// NewRandomVector3D создаёт случайный 3D вектор с X/Z в диапазоне [-maxRange, maxRange] и Y=0
 func NewRandomVector3D(maxRange float64) *Vector3D {
 	return &Vector3D{
 		X: (rand.Float64()*2 - 1) * maxRange,
@@ -29,7 +29,7 @@ func Zero() *Vector3D {
 	return &Vector3D{X: 0, Y: 0, Z: 0}
 }
 
-// Add adds two vectors
+// Add складывает два вектора
 func (v *Vector3D) Add(other *Vector3D) *Vector3D {
 	return &Vector3D{
 		X: v.X + other.X,
@@ -38,7 +38,7 @@ func (v *Vector3D) Add(other *Vector3D) *Vector3D {
 	}
 }
 
-// Subtract subtracts another vector from this vector
+// Subtract вычитает другой вектор из этого вектора
 func (v *Vector3D) Subtract(other *Vector3D) *Vector3D {
 	return &Vector3D{
 		X: v.X - other.X,
@@ -47,7 +47,7 @@ func (v *Vector3D) Subtract(other *Vector3D) *Vector3D {
 	}
 }
 
-// Multiply scales the vector by a scalar
+// Multiply масштабирует вектор на скаляр
 func (v *Vector3D) Multiply(scalar float64) *Vector3D {
 	return &Vector3D{
 		X: v.X * scalar,
@@ -56,12 +56,12 @@ func (v *Vector3D) Multiply(scalar float64) *Vector3D {
 	}
 }
 
-// Length calculates the length of the vector
+// Length вычисляет длину вектора
 func (v *Vector3D) Length() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 }
 
-// Normalize normalizes the vector to unit length
+// Normalize нормализует вектор к единичной длине
 func (v *Vector3D) Normalize() *Vector3D {
 	length := v.Length()
 	if length == 0 {
@@ -74,7 +74,7 @@ func (v *Vector3D) Normalize() *Vector3D {
 	}
 }
 
-// Distance calculates the distance between two points
+// Distance вычисляет расстояние между двумя точками
 func (v *Vector3D) Distance(other *Vector3D) float64 {
 	dx := v.X - other.X
 	dy := v.Y - other.Y
@@ -82,7 +82,7 @@ func (v *Vector3D) Distance(other *Vector3D) float64 {
 	return math.Sqrt(dx*dx + dy*dy + dz*dz)
 }
 
-// Copy creates a copy of the vector
+// Copy создаёт копию вектора
 func (v *Vector3D) Copy() *Vector3D {
 	return &Vector3D{X: v.X, Y: v.Y, Z: v.Z}
 }

@@ -11,17 +11,17 @@ const (
 	// VerticalSpeed скорость вертикального движения
 	VerticalSpeed = 10.0
 	// GroundLevel уровень земли
-	GroundLevel = 0.0
+	GroundLevel = models.GroundLevel
 )
 
 // InputState представляет состояние ввода с клавиатуры
 type InputState struct {
-	Forward  bool // W
-	Backward bool // S
-	Left     bool // A
-	Right    bool // D
-	Up       bool // Space
-	Down     bool // Shift
+	Forward  bool
+	Backward bool
+	Left     bool
+	Right    bool
+	Up       bool
+	Down     bool
 }
 
 // MainDroneController контроллер для управления главным дроном
@@ -31,9 +31,7 @@ type MainDroneController struct {
 
 // NewMainDroneController создаёт новый контроллер главного дрона
 func NewMainDroneController() *MainDroneController {
-	return &MainDroneController{
-		input: InputState{},
-	}
+	return &MainDroneController{}
 }
 
 // SetInput устанавливает состояние ввода
@@ -70,8 +68,8 @@ func (c *MainDroneController) Update(drone *models.Drone, deltaTime float64) {
 	// Нормализуем горизонтальную составляющую для диагонального движения
 	horizontalLen := utils.NewVector3D(direction.X, 0, direction.Z).Length()
 	if horizontalLen > 0 {
-		direction.X /= horizontalLen * 1.414 // sqrt(2) для диагоналей
-		direction.Z /= horizontalLen * 1.414
+		direction.X /= horizontalLen * utils.Sqrt2
+		direction.Z /= horizontalLen * utils.Sqrt2
 	}
 
 	// Применяем направление к дрону

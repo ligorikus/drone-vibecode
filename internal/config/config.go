@@ -109,5 +109,19 @@ func (c *Config) Validate() error {
 	if c.SmoothingFactor <= 0 || c.SmoothingFactor > 1 {
 		c.SmoothingFactor = 0.2
 	}
+	// Валидация размеров окна
+	if c.WindowWidth <= 0 {
+		c.WindowWidth = 800
+	}
+	if c.WindowHeight <= 0 {
+		c.WindowHeight = 600
+	}
+	// Ограничение минимальных размеров окна
+	if c.WindowWidth < 320 {
+		c.WindowWidth = 320
+	}
+	if c.WindowHeight < 240 {
+		c.WindowHeight = 240
+	}
 	return nil
 }

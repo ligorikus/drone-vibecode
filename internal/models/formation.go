@@ -25,13 +25,14 @@ type FormationConfig struct {
 	SmoothingFactor   float64
 	FormationType     FormationType
 	GroundLevel       float64 // Уровень земли (Y координата)
+	RNG               *rand.Rand // Генератор случайных чисел
 }
 
 // CalculateSphericalPosition рассчитывает позицию в сферическом формировании
-func CalculateSphericalPosition(center *utils.Vector3D, minDist, maxDist float64) *utils.Vector3D {
-	angle1 := rand.Float64() * 2 * math.Pi
-	angle2 := rand.Float64() * math.Pi
-	distance := minDist + rand.Float64()*(maxDist-minDist)
+func CalculateSphericalPosition(center *utils.Vector3D, minDist, maxDist float64, rng *rand.Rand) *utils.Vector3D {
+	angle1 := rng.Float64() * 2 * math.Pi
+	angle2 := rng.Float64() * math.Pi
+	distance := minDist + rng.Float64()*(maxDist-minDist)
 
 	x := distance * math.Sin(angle2) * math.Cos(angle1)
 	y := distance * math.Sin(angle2) * math.Sin(angle1)
@@ -69,9 +70,13 @@ func CalculateSpherePoint(center *utils.Vector3D, radius float64, index, total i
 
 // CalculateTargetPosition рассчитывает целевую позицию для поддержания формирования
 func CalculateTargetPosition(parentPos *utils.Vector3D, currentPos *utils.Vector3D, config FormationConfig) *utils.Vector3D {
-	angle1 := rand.Float64() * 2 * math.Pi
-	angle2 := rand.Float64() * math.Pi
-	distance := config.MinDistance + rand.Float64()*config.MovementVariation
+	rng := config.RNG
+	if rng == nil {
+		rng = rand.New(rand.NewSource(0))
+	}
+	angle1 := rng.Float64() * 2 * math.Pi
+	angle2 := rng.Float64() * math.Pi
+	distance := config.MinDistance + rng.Float64()*config.MovementVariation
 
 	targetX := parentPos.X + distance*math.Sin(angle2)*math.Cos(angle1)
 	targetY := parentPos.Y + distance*math.Sin(angle2)*math.Sin(angle1)

@@ -169,7 +169,7 @@ type OpenGLVisualizer struct {
 	mousePressed   bool
 
 	// Simulation service for drone control
-	simulation *services.SimulationService
+	simulation services.SimulationProvider
 
 	// Keyboard input state
 	keys map[glfw.Key]bool
@@ -188,7 +188,7 @@ func NewOpenGLVisualizer(mainDrone *models.Drone, cfg *config.Config) *OpenGLVis
 }
 
 // SetSimulation устанавливает сервис симуляции для управления дронами
-func (ov *OpenGLVisualizer) SetSimulation(sim *services.SimulationService) {
+func (ov *OpenGLVisualizer) SetSimulation(sim services.SimulationProvider) {
 	ov.simulation = sim
 }
 

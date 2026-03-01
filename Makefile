@@ -97,6 +97,10 @@ test-coverage:
 	$(GO) test -race -coverprofile=coverage.out ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Отчёт о покрытии: coverage.html"
+	@echo "Для просмотра откройте coverage.html в браузере"
+	@echo "  macOS:  open coverage.html"
+	@echo "  Linux:  xdg-open coverage.html"
+	@echo "  Windows: start coverage.html"
 
 # Очистка
 clean:
