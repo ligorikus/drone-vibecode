@@ -3,7 +3,10 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds the simulation configuration
@@ -77,6 +80,84 @@ func LoadConfig(path string) (*Config, error) {
 
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, err
+	}
+
+	return config, nil
+}
+
+// LoadEnvConfig загружает конфигурацию из .env файла и применяет её к конфигурации
+// Возвращает Config с применёнными значениями из .env или error если файл не найден
+// Поддерживаемые переменные окружения:
+//   - DRONE_COUNT (int)
+//   - MIN_DISTANCE (float)
+//   - MAX_DISTANCE (float)
+//   - UPDATE_INTERVAL (int, наносекунды)
+//   - FORMATION_RADIUS (float)
+//   - MOVEMENT_VARIATION (float)
+//   - SMOOTHING_FACTOR (float)
+//   - DEBUG (bool)
+//   - VISUALIZATION_ENABLED (bool)
+//   - WINDOW_WIDTH (int)
+//   - WINDOW_HEIGHT (int)
+func LoadEnvConfig(path string) (*Config, error) {
+	// Загружаем .env файл
+	if err := godotenv.Load(path); err != nil {
+		return nil, err
+	}
+
+	config := DefaultConfig()
+
+	// Читаем значения из переменных окружения
+	if v := os.Getenv("DRONE_COUNT"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			config.DroneCount = val
+		}
+	}
+	if v := os.Getenv("MIN_DISTANCE"); v != "" {
+		if val, err := strconv.ParseFloat(v, 64); err == nil {
+			config.MinDistance = val
+		}
+	}
+	if v := os.Getenv("MAX_DISTANCE"); v != "" {
+		if val, err := strconv.ParseFloat(v, 64); err == nil {
+			config.MaxDistance = val
+		}
+	}
+	if v := os.Getenv("UPDATE_INTERVAL"); v != "" {
+		if val, err := strconv.ParseInt(v, 10, 64); err == nil {
+			config.UpdateInterval = time.Duration(val)
+		}
+	}
+	if v := os.Getenv("FORMATION_RADIUS"); v != "" {
+		if val, err := strconv.ParseFloat(v, 64); err == nil {
+			config.FormationRadius = val
+		}
+	}
+	if v := os.Getenv("MOVEMENT_VARIATION"); v != "" {
+		if val, err := strconv.ParseFloat(v, 64); err == nil {
+			config.MovementVariation = val
+		}
+	}
+	if v := os.Getenv("SMOOTHING_FACTOR"); v != "" {
+		if val, err := strconv.ParseFloat(v, 64); err == nil {
+			config.SmoothingFactor = val
+		}
+	}
+	if v := os.Getenv("DEBUG"); v != "" {
+		config.Debug = v == "true"
+	}
+	if v := os.Getenv("VISUALIZATION_ENABLED"); v != "" {
+		config.VisualizationEnabled = v == "true"
+	}
+	if v := os.Getenv("WINDOW_WIDTH"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			config.WindowWidth = val
+		}
+	}
+	if v := os.Getenv("WINDOW_HEIGHT"); v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			config.WindowHeight = val
+		}
 	}
 
 	return config, nil

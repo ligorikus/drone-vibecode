@@ -127,35 +127,6 @@ func TestDroneControllerMoveToFormationPosition(t *testing.T) {
 	}
 }
 
-func TestDroneControllerKeepFormation(t *testing.T) {
-	cfg := config.DefaultConfig()
-	cfg.DroneCount = 10
-	cfg.UpdateInterval = 10 * time.Millisecond
-	ctrl := NewDroneController(cfg)
-
-	parent := models.NewDroneAtPosition(0, utils.NewVector3D(0, 10, 0))
-	child := models.NewChildDrone(0, utils.NewVector3D(5, 10, 5))
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	done := make(chan struct{})
-	go func() {
-		ctrl.KeepFormation(ctx, child, parent)
-		close(done)
-	}()
-
-	// Ждём немного больше интервала обновления
-	time.Sleep(20 * time.Millisecond)
-	cancel()
-
-	select {
-	case <-done:
-		// OK
-	case <-time.After(100 * time.Millisecond):
-		t.Error("KeepFormation did not stop after context cancellation")
-	}
-}
-
 func TestDroneControllerSetLogger(t *testing.T) {
 	cfg := config.DefaultConfig()
 	ctrl := NewDroneController(cfg)

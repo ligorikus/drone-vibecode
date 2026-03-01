@@ -144,6 +144,24 @@ gen-config:
 		'}' > config.json
 	@echo "Конфигурация сохранена в config.json"
 
+# Генерация .env конфигурации по умолчанию
+gen-env:
+	@echo "Генерация .env конфигурации..."
+	@printf '%s\n' \
+		'# Конфигурация симуляции дронов' \
+		'DRONE_COUNT=100' \
+		'MIN_DISTANCE=5.0' \
+		'MAX_DISTANCE=10.0' \
+		'UPDATE_INTERVAL=2000000000' \
+		'FORMATION_RADIUS=7.5' \
+		'MOVEMENT_VARIATION=0.5' \
+		'SMOOTHING_FACTOR=0.2' \
+		'DEBUG=false' \
+		'VISUALIZATION_ENABLED=true' \
+		'WINDOW_WIDTH=800' \
+		'WINDOW_HEIGHT=600' > .env
+	@echo "Конфигурация сохранена в .env"
+
 # Установка
 install:
 	@echo "Установка..."
@@ -174,5 +192,6 @@ help:
 	@echo "  make lint               - Линтинг"
 	@echo "  make deps               - Обновление зависимостей"
 	@echo "  make gen-config         - Генерация config.json"
+	@echo "  make gen-env            - Генерация .env конфигурации"
 	@echo "  make install            - Установка"
 	@echo "  make help               - Эта справка"

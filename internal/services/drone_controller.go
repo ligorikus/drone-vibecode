@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"drone/internal/config"
 	"drone/internal/models"
@@ -37,7 +36,7 @@ func (dc *DroneController) UpdatePosition(ctx context.Context, child *models.Chi
 	droneIndex := child.ID % dc.config.DroneCount
 
 	// Используем адаптивную целевую позицию с учетом уровня земли (groundLevel = 0)
-	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, models.GroundLevel)
+	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, utils.GroundLevel)
 
 	// Вычисляем направление к целевой позиции
 	direction := utils.NewVector3D(
@@ -58,7 +57,7 @@ func (dc *DroneController) UpdatePosition(ctx context.Context, child *models.Chi
 		child.Update(utils.DefaultDeltaTime)
 
 		// Ограничиваем высоту (земля)
-		child.ClampY(models.GroundLevel)
+		child.ClampY(utils.GroundLevel)
 	}
 
 	if dc.config.Debug {
@@ -120,7 +119,7 @@ func (dc *DroneController) MoveDroneTowards(child *models.ChildDrone, target *ut
 	child.ApplyDirection(direction)
 	child.Accelerate(deltaTime)
 	child.Update(deltaTime)
-	child.ClampY(models.GroundLevel)
+	child.ClampY(utils.GroundLevel)
 }
 
 // MoveToFormationPosition перемещает дрона к позиции в адаптивной формации
@@ -129,18 +128,6 @@ func (dc *DroneController) MoveToFormationPosition(child *models.ChildDrone, par
 	avgRadius := (dc.config.MinDistance + dc.config.MaxDistance) / 2
 	droneIndex := child.ID % dc.config.DroneCount
 
-	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, models.GroundLevel)
+	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, utils.GroundLevel)
 	dc.MoveDroneTowards(child, targetPos, deltaTime)
-}
-
-// KeepFormation поддерживает формирование вокруг главного дрона
-func (dc *DroneController) KeepFormation(ctx context.Context, child *models.ChildDrone, parent *models.Drone) {
-	ticker := dc.config.UpdateInterval
-
-	select {
-	case <-ctx.Done():
-		return
-	case <-time.After(ticker):
-		dc.UpdatePosition(ctx, child, parent)
-	}
 }

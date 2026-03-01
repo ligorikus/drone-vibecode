@@ -11,7 +11,7 @@ const (
 	// VerticalSpeed скорость вертикального движения
 	VerticalSpeed = 10.0
 	// GroundLevel уровень земли
-	GroundLevel = models.GroundLevel
+	GroundLevel = utils.GroundLevel
 )
 
 // InputState представляет состояние ввода с клавиатуры

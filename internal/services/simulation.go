@@ -23,18 +23,19 @@ type SimulationProvider interface {
 
 // SimulationService сервис симуляции дронов
 type SimulationService struct {
-	config     *config.Config
-	mainDrone  *models.Drone
-	logger     *slog.Logger
+	config        *config.Config
+	mainDrone     *models.Drone
+	logger        *slog.Logger
 
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	controller     *DroneController
-	mainDroneCtrl  *MainDroneController
-	inputState     InputState
-	rng            *rand.Rand
+	controller    *DroneController
+	mainDroneCtrl *MainDroneController
+	inputState    InputState
+	rng           *rand.Rand
+	rngMu         sync.Mutex // Защита для RNG
 }
 
 // Проверка что SimulationService реализует SimulationProvider
@@ -97,7 +98,10 @@ func (s *SimulationService) createChildDrones() error {
 	center := s.mainDrone.GetPosition()
 
 	for i := 0; i < s.config.DroneCount; i++ {
+		s.rngMu.Lock()
 		position := models.CalculateSphericalPosition(center, s.config.MinDistance, s.config.MaxDistance, s.rng)
+		s.rngMu.Unlock()
+
 		child := models.NewChildDrone(i, position)
 
 		s.mainDrone.AddChild(child)
@@ -110,7 +114,10 @@ func (s *SimulationService) createChildDrones() error {
 }
 
 // GetRNG возвращает генератор случайных чисел для использования в других компонентах
+// Метод помечен как deprecated - используйте локальный RNG в компонентах
 func (s *SimulationService) GetRNG() *rand.Rand {
+	s.rngMu.Lock()
+	defer s.rngMu.Unlock()
 	return s.rng
 }
 
@@ -141,23 +148,23 @@ func (s *SimulationService) runChildDrone(child *models.ChildDrone) {
 // Stop останавливает симуляцию с graceful shutdown
 func (s *SimulationService) Stop() {
 	s.logger.Info("Остановка симуляции...")
-	
+
 	if s.cancel != nil {
 		s.cancel()
 	}
-	
+
 	// Ждём завершения всех горутин с таймаутом
 	done := make(chan struct{})
 	go func() {
 		s.wg.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		s.logger.Info("Симуляция остановлена корректно")
-	case <-time.After(5 * time.Second):
-		s.logger.Warn("Таймаут остановки симуляции")
+	case <-time.After(10 * time.Second):
+		s.logger.Warn("Таймаут остановки симуляции (10с)")
 	}
 }
 

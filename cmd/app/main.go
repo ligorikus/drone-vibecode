@@ -19,18 +19,27 @@ import (
 func main() {
 	// Парсинг флагов командной строки
 	configPath := flag.String("config", "", "Путь к файлу конфигурации (JSON)")
+	envPath := flag.String("env", ".env", "Путь к файлу окружения (.env)")
 	noVis := flag.Bool("no-vis", false, "Отключить визуализацию")
 	debug := flag.Bool("debug", false, "Режим отладки")
 	flag.Parse()
 
-	// Загрузка конфигурации
-	cfg, err := config.LoadConfig(*configPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка загрузки конфигурации: %v\n", err)
-		os.Exit(1)
+	// Загрузка конфигурации из .env (если существует)
+	var cfg *config.Config
+	if envCfg, err := config.LoadEnvConfig(*envPath); err == nil {
+		fmt.Println("Конфигурация загружена из .env")
+		cfg = envCfg
+	} else {
+		// Загрузка конфигурации из JSON или использование значений по умолчанию
+		var err error
+		cfg, err = config.LoadConfig(*configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Ошибка загрузки конфигурации: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
-	// Применение флагов
+	// Применение флагов (флаги имеют приоритет)
 	if *noVis {
 		cfg.VisualizationEnabled = false
 	}
@@ -75,24 +84,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Обработка сигналов - в отдельной горутине
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigChan
-		fmt.Println("\nПолучен сигнал остановки...")
-		cancel()
-	}()
-
-	fmt.Println("\nСимуляция запущена. Нажмите Ctrl+C для остановки.")
-
-	// Запуск визуализации
+	// Запуск визуализации (если включена)
 	if cfg.VisualizationEnabled {
-		// Lock OS thread для OpenGL - должно быть в главной горутине
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
+		// Инициализация визуализации ДО установки обработчика сигналов
 		visManager := visualization.NewManager(cfg, simService.GetMainDrone())
 		if err := visManager.Init(); err != nil {
 			logger.Error("Ошибка инициализации визуализации", "error", err)
@@ -102,6 +96,22 @@ func main() {
 
 		// Передаём симуляцию в визуализатор для управления дроном
 		visManager.SetSimulation(simService)
+
+		// Обработка сигналов - после успешной инициализации
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			<-sigChan
+			fmt.Println("\nПолучен сигнал остановки...")
+			cancel()
+		}()
+
+		fmt.Println("\nСимуляция запущена. Нажмите Ctrl+C для остановки.")
+
+		// Lock OS thread для OpenGL - должно быть в главной горутине
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 
 		// Запуск рендеринга в главной горутине (блокирующий вызов)
 		if err := visManager.Run(ctx); err != nil {
@@ -113,6 +123,17 @@ func main() {
 		}
 	} else {
 		// Без визуализации - просто ждём сигнал
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			<-sigChan
+			fmt.Println("\nПолучен сигнал остановки...")
+			cancel()
+		}()
+
+		fmt.Println("\nСимуляция запущена. Нажмите Ctrl+C для остановки.")
+
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {

@@ -6,11 +6,6 @@ import (
 	"drone/internal/utils"
 )
 
-const (
-	// GroundLevel уровень земли
-	GroundLevel = 0.0
-)
-
 // DronePhysics представляет физические характеристики дрона
 type DronePhysics struct {
 	Velocity     *utils.Vector3D // Текущая скорость
