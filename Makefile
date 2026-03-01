@@ -1,0 +1,118 @@
+.PHONY: build run test clean lint help
+
+# Переменные
+BINARY_NAME=drone-simulation
+CMD_PATH=./cmd/app
+GO=go
+GOFLAGS=-v
+
+# Сборка бинарного файла
+build:
+	@echo "Сборка $(BINARY_NAME)..."
+	$(GO) build $(GOFLAGS) -o $(BINARY_NAME) $(CMD_PATH)
+	@echo "Сборка завершена: ./$(BINARY_NAME)"
+
+# Сборка с оптимизациями
+build-release:
+	@echo "Сборка релизной версии..."
+	$(GO) build -ldflags="-s -w" -o $(BINARY_NAME) $(CMD_PATH)
+	@echo "Релизная сборка завершена: ./$(BINARY_NAME)"
+
+# Запуск симуляции
+run:
+	@echo "Запуск симуляции..."
+	$(GO) run $(CMD_PATH)
+
+# Запуск без визуализации
+run-cli:
+	@echo "Запуск симуляции без визуализации..."
+	$(GO) run $(CMD_PATH) -no-vis
+
+# Запуск в режиме отладки
+run-debug:
+	@echo "Запуск симуляции в режиме отладки..."
+	$(GO) run $(CMD_PATH) -debug
+
+# Запуск с конфигурацией
+run-config:
+	@echo "Запуск симуляции с конфигурацией..."
+	$(GO) run $(CMD_PATH) -config=config.json
+
+# Запуск тестов
+test:
+	@echo "Запуск тестов..."
+	$(GO) test $(GOFLAGS) -race ./...
+
+# Запуск тестов с покрытием
+test-coverage:
+	@echo "Запуск тестов с покрытием..."
+	$(GO) test -race -coverprofile=coverage.out ./...
+	$(GO) tool cover -html=coverage.out -o coverage.html
+	@echo "Отчёт о покрытии: coverage.html"
+
+# Очистка
+clean:
+	@echo "Очистка..."
+	rm -f $(BINARY_NAME)
+	rm -f coverage.out coverage.html
+	@echo "Очистка завершена"
+
+# Форматирование кода
+fmt:
+	@echo "Форматирование кода..."
+	$(GO) fmt ./...
+
+# Линтинг (требуется golangci-lint)
+lint:
+	@echo "Запуск линтера..."
+	@which golangci-lint > /dev/null || (echo "Установите golangci-lint: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest" && exit 1)
+	golangci-lint run ./...
+
+# Обновление зависимостей
+deps:
+	@echo "Обновление зависимостей..."
+	$(GO) get -u ./...
+	$(GO) mod tidy
+
+# Генерация конфигурации по умолчанию
+gen-config:
+	@echo "Генерация конфигурации по умолчанию..."
+	@printf '%s\n' '{' \
+		'  "drone_count": 100,' \
+		'  "min_distance": 5.0,' \
+		'  "max_distance": 10.0,' \
+		'  "update_interval": 2000000000,' \
+		'  "formation_radius": 7.5,' \
+		'  "movement_variation": 0.5,' \
+		'  "smoothing_factor": 0.2,' \
+		'  "debug": false,' \
+		'  "visualization_enabled": true,' \
+		'  "window_width": 800,' \
+		'  "window_height": 600' \
+		'}' > config.json
+	@echo "Конфигурация сохранена в config.json"
+
+# Установка
+install:
+	@echo "Установка..."
+	$(GO) install $(GOFLAGS) $(CMD_PATH)
+	@echo "Установка завершена"
+
+# Помощь
+help:
+	@echo "Доступные команды:"
+	@echo "  make build          - Сборка бинарного файла"
+	@echo "  make build-release  - Сборка релизной версии"
+	@echo "  make run            - Запуск симуляции"
+	@echo "  make run-cli        - Запуск без визуализации"
+	@echo "  make run-debug      - Запуск в режиме отладки"
+	@echo "  make run-config     - Запуск с конфигурацией"
+	@echo "  make test           - Запуск тестов"
+	@echo "  make test-coverage  - Запуск тестов с отчётом"
+	@echo "  make clean          - Очистка"
+	@echo "  make fmt            - Форматирование кода"
+	@echo "  make lint           - Линтинг"
+	@echo "  make deps           - Обновление зависимостей"
+	@echo "  make gen-config     - Генерация config.json"
+	@echo "  make install        - Установка"
+	@echo "  make help           - Эта справка"
