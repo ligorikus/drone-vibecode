@@ -70,13 +70,21 @@ func CalculateSpherePoint(center *utils.Vector3D, radius float64, index, total i
 
 // CalculateTargetPosition рассчитывает целевую позицию для поддержания формирования
 func CalculateTargetPosition(parentPos *utils.Vector3D, currentPos *utils.Vector3D, config FormationConfig) *utils.Vector3D {
+	// Используем глобальный rand для потокобезопасности (начиная с Go 1.20)
+	// или переданный RNG из config
 	rng := config.RNG
-	if rng == nil {
-		rng = rand.New(rand.NewSource(0))
+	
+	var angle1, angle2 float64
+	if rng != nil {
+		angle1 = rng.Float64() * 2 * math.Pi
+		angle2 = rng.Float64() * math.Pi
+	} else {
+		// Глобальный rand потокобезопасен в Go 1.20+
+		angle1 = rand.Float64() * 2 * math.Pi
+		angle2 = rand.Float64() * math.Pi
 	}
-	angle1 := rng.Float64() * 2 * math.Pi
-	angle2 := rng.Float64() * math.Pi
-	distance := config.MinDistance + rng.Float64()*config.MovementVariation
+	
+	distance := config.MinDistance + rand.Float64()*config.MovementVariation
 
 	targetX := parentPos.X + distance*math.Sin(angle2)*math.Cos(angle1)
 	targetY := parentPos.Y + distance*math.Sin(angle2)*math.Sin(angle1)

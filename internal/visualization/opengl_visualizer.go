@@ -428,6 +428,13 @@ func (ov *OpenGLVisualizer) RenderLoop(ctx context.Context) error {
 	ticker := time.NewTicker(time.Millisecond * 16) // ~60 FPS
 	defer ticker.Stop()
 
+	// Recover для обработки паник в цикле рендеринга
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Паника в визуализаторе: %v\n", r)
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():

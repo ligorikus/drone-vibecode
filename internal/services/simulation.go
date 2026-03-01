@@ -54,8 +54,8 @@ func NewSimulationService(cfg *config.Config, logger *slog.Logger) *SimulationSe
 
 // Init инициализирует симуляцию
 func (s *SimulationService) Init() error {
-	// Позиция для главного дрона near origin
-	startPosition := utils.NewVector3D(0, 10, 0) // Начальная высота 10 над землёй
+	// Позиция для главного дрона на высоте 10 над землёй
+	startPosition := utils.NewVector3D(0, 10, 0)
 
 	s.mainDrone = models.NewDroneAtPosition(0, startPosition)
 
@@ -113,14 +113,6 @@ func (s *SimulationService) createChildDrones() error {
 	return nil
 }
 
-// GetRNG возвращает генератор случайных чисел для использования в других компонентах
-// Метод помечен как deprecated - используйте локальный RNG в компонентах
-func (s *SimulationService) GetRNG() *rand.Rand {
-	s.rngMu.Lock()
-	defer s.rngMu.Unlock()
-	return s.rng
-}
-
 // runChildDrone запускает поведение дочернего дрона
 func (s *SimulationService) runChildDrone(child *models.ChildDrone) {
 	defer s.wg.Done()
@@ -164,7 +156,9 @@ func (s *SimulationService) Stop() {
 	case <-done:
 		s.logger.Info("Симуляция остановлена корректно")
 	case <-time.After(10 * time.Second):
-		s.logger.Warn("Таймаут остановки симуляции (10с)")
+		s.logger.Warn("Таймаут остановки симуляции (10с), завершение принудительно")
+		// Контекст уже отменён, горутины должны завершиться на следующей итерации
+		// Возвращаем без блокировки
 	}
 }
 

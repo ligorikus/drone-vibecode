@@ -16,6 +16,23 @@ import (
 	"drone/internal/visualization"
 )
 
+// applyEnvConfig применяет значения из .env конфигурации к основной конфигурации
+func applyEnvConfig(cfg, envCfg *config.Config) {
+	// Применяем только те значения, которые были явно заданы в .env
+	// (LoadEnvConfig возвращает Config с заполненными полями, но мы применяем всё)
+	cfg.DroneCount = envCfg.DroneCount
+	cfg.MinDistance = envCfg.MinDistance
+	cfg.MaxDistance = envCfg.MaxDistance
+	cfg.UpdateInterval = envCfg.UpdateInterval
+	cfg.FormationRadius = envCfg.FormationRadius
+	cfg.MovementVariation = envCfg.MovementVariation
+	cfg.SmoothingFactor = envCfg.SmoothingFactor
+	cfg.Debug = envCfg.Debug
+	cfg.VisualizationEnabled = envCfg.VisualizationEnabled
+	cfg.WindowWidth = envCfg.WindowWidth
+	cfg.WindowHeight = envCfg.WindowHeight
+}
+
 func main() {
 	// Парсинг флагов командной строки
 	configPath := flag.String("config", "", "Путь к файлу конфигурации (JSON)")
@@ -24,22 +41,21 @@ func main() {
 	debug := flag.Bool("debug", false, "Режим отладки")
 	flag.Parse()
 
-	// Загрузка конфигурации из .env (если существует)
-	var cfg *config.Config
-	if envCfg, err := config.LoadEnvConfig(*envPath); err == nil {
-		fmt.Println("Конфигурация загружена из .env")
-		cfg = envCfg
-	} else {
-		// Загрузка конфигурации из JSON или использование значений по умолчанию
-		var err error
-		cfg, err = config.LoadConfig(*configPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Ошибка загрузки конфигурации: %v\n", err)
-			os.Exit(1)
-		}
+	// Загрузка конфигурации: JSON файл или значения по умолчанию
+	cfg, err := config.LoadConfig(*configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Ошибка загрузки конфигурации: %v\n", err)
+		os.Exit(1)
 	}
 
-	// Применение флагов (флаги имеют приоритет)
+	// Загрузка конфигурации из .env (если существует, переопределяет JSON)
+	if envCfg, err := config.LoadEnvConfig(*envPath); err == nil {
+		fmt.Println("Конфигурация загружена из .env")
+		// Применяем значения из .env поверх JSON
+		applyEnvConfig(cfg, envCfg)
+	}
+
+	// Применение флагов (флаги имеют наивысший приоритет)
 	if *noVis {
 		cfg.VisualizationEnabled = false
 	}
@@ -97,7 +113,13 @@ func main() {
 		// Передаём симуляцию в визуализатор для управления дроном
 		visManager.SetSimulation(simService)
 
-		// Обработка сигналов - после успешной инициализации
+		fmt.Println("\nСимуляция запущена. Нажмите Ctrl+C для остановки.")
+
+		// Lock OS thread для OpenGL - должно быть в главной горутине
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		// Обработка сигналов - ПОСЛЕ LockOSThread
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -106,12 +128,6 @@ func main() {
 			fmt.Println("\nПолучен сигнал остановки...")
 			cancel()
 		}()
-
-		fmt.Println("\nСимуляция запущена. Нажмите Ctrl+C для остановки.")
-
-		// Lock OS thread для OpenGL - должно быть в главной горутине
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
 
 		// Запуск рендеринга в главной горутине (блокирующий вызов)
 		if err := visManager.Run(ctx); err != nil {

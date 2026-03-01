@@ -5,15 +5,6 @@ import (
 	"drone/internal/utils"
 )
 
-const (
-	// MovementSpeed скорость движения дрона
-	MovementSpeed = 15.0
-	// VerticalSpeed скорость вертикального движения
-	VerticalSpeed = 10.0
-	// GroundLevel уровень земли
-	GroundLevel = utils.GroundLevel
-)
-
 // InputState представляет состояние ввода с клавиатуры
 type InputState struct {
 	Forward  bool
@@ -82,7 +73,7 @@ func (c *MainDroneController) Update(drone *models.Drone, deltaTime float64) {
 	drone.Update(deltaTime)
 
 	// Ограничиваем Y координату (земля)
-	drone.ClampY(GroundLevel)
+	drone.ClampY(utils.GroundLevel)
 }
 
 // IsMoving возвращает true, если дрон движется

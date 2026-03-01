@@ -139,7 +139,7 @@ func TestMainDroneControllerUpdateGroundClamp(t *testing.T) {
 	}
 
 	newPos := drone.GetPosition()
-	if newPos.Y < GroundLevel-0.01 {
+	if newPos.Y < utils.GroundLevel-0.01 {
 		t.Errorf("Expected Y to be clamped to ground level, got %f", newPos.Y)
 	}
 }

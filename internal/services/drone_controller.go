@@ -19,6 +19,7 @@ type DroneController struct {
 func NewDroneController(cfg *config.Config) *DroneController {
 	return &DroneController{
 		config: cfg,
+		logger: slog.Default(),
 	}
 }
 

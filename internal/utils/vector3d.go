@@ -105,3 +105,13 @@ func (v *Vector3D) Cross(other *Vector3D) *Vector3D {
 		Z: v.X*other.Y - v.Y*other.X,
 	}
 }
+
+// IsFloatEqual проверяет равенство двух float с учётом погрешности
+func IsFloatEqual(a, b float64) bool {
+	return math.Abs(a-b) < FloatEpsilon
+}
+
+// IsFloatZero проверяет, равен ли float нулю с учётом погрешности
+func IsFloatZero(a float64) bool {
+	return math.Abs(a) < FloatEpsilon
+}

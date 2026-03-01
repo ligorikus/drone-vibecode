@@ -299,24 +299,6 @@ func TestSimulationServicePrintFormationStats(t *testing.T) {
 	}
 }
 
-func TestSimulationServiceGetRNG(t *testing.T) {
-	cfg := config.DefaultConfig()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
-	service := NewSimulationService(cfg, logger)
-
-	rng := service.GetRNG()
-	if rng == nil {
-		t.Error("Expected RNG to be available")
-	}
-
-	// Проверяем, что RNG работает
-	val := rng.Float64()
-	if val < 0 || val >= 1 {
-		t.Errorf("Expected RNG to return value in [0, 1), got %f", val)
-	}
-}
-
 func TestSimulationServiceConcurrentAccess(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.DroneCount = 10
