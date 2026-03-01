@@ -147,9 +147,9 @@ func TestGetFormationStatsSingle(t *testing.T) {
 	children := []*ChildDrone{
 		NewChildDrone(1, utils.NewVector3D(8, 0, 0)),
 	}
-	
+
 	stats := GetFormationStats(center, children)
-	
+
 	if stats.Count != 1 {
 		t.Errorf("Expected count=1, got %d", stats.Count)
 	}
@@ -161,5 +161,154 @@ func TestGetFormationStatsSingle(t *testing.T) {
 	}
 	if math.Abs(stats.MaxDistance-8) > 1e-9 {
 		t.Errorf("Expected max=8, got %f", stats.MaxDistance)
+	}
+}
+
+func TestCalculateTruncatedSpherePosition_HighAboveGround(t *testing.T) {
+	center := utils.NewVector3D(0, 50, 0) // Высоко над землей
+	radius := 10.0
+	groundLevel := 0.0
+
+	pos := CalculateTruncatedSpherePosition(center, radius, groundLevel, 0, 10)
+
+	if pos == nil {
+		t.Fatal("Position is nil")
+	}
+
+	// Проверяем, что позиция на сфере (расстояние от центра = радиус)
+	distance := center.Distance(pos)
+	if math.Abs(distance-radius) > 0.01 {
+		t.Errorf("Distance from center should be %f, got %f", radius, distance)
+	}
+}
+
+func TestCalculateTruncatedSpherePosition_NearGround(t *testing.T) {
+	center := utils.NewVector3D(0, 5, 0) // Близко к земле
+	radius := 10.0
+	groundLevel := 0.0
+
+	// Создаем множество точек для проверки
+	allAboveGround := true
+	for i := 0; i < 100; i++ {
+		pos := CalculateTruncatedSpherePosition(center, radius, groundLevel, i, 100)
+		if pos.Y < groundLevel-0.01 { // Небольшой допуск для погрешности
+			allAboveGround = false
+			t.Errorf("Drone %d is below ground: Y=%f", i, pos.Y)
+		}
+	}
+
+	if !allAboveGround {
+		t.Error("Some drones are below ground level")
+	}
+}
+
+func TestCalculateTruncatedSpherePosition_AtGroundLevel(t *testing.T) {
+	center := utils.NewVector3D(0, 0, 0) // На уровне земли
+	radius := 10.0
+	groundLevel := 0.0
+
+	// Все точки должны быть в верхней полусфере
+	for i := 0; i < 100; i++ {
+		pos := CalculateTruncatedSpherePosition(center, radius, groundLevel, i, 100)
+		if pos.Y < groundLevel-0.01 {
+			t.Errorf("Drone %d is below ground: Y=%f", i, pos.Y)
+		}
+		// Расстояние от центра должно быть близко к радиусу
+		distance := center.Distance(pos)
+		if math.Abs(distance-radius) > 0.1 {
+			t.Errorf("Distance from center should be ~%f, got %f", radius, distance)
+		}
+	}
+}
+
+func TestCalculateTruncatedSpherePosition_BelowGround(t *testing.T) {
+	center := utils.NewVector3D(0, -5, 0) // Ниже уровня земли
+	radius := 10.0
+	groundLevel := 0.0
+
+	// Все точки все равно должны быть над землей (на верхней части сферы)
+	for i := 0; i < 50; i++ {
+		pos := CalculateTruncatedSpherePosition(center, radius, groundLevel, i, 50)
+		if pos.Y < groundLevel-0.01 {
+			t.Errorf("Drone %d is below ground: Y=%f", i, pos.Y)
+		}
+	}
+}
+
+func TestCalculateTruncatedSpherePosition_UniformDistribution(t *testing.T) {
+	center := utils.NewVector3D(0, 10, 0)
+	radius := 10.0
+	groundLevel := 0.0
+	total := 100
+
+	// Проверяем, что точки распределены по разным углам
+	positions := make([]*utils.Vector3D, total)
+	for i := 0; i < total; i++ {
+		positions[i] = CalculateTruncatedSpherePosition(center, radius, groundLevel, i, total)
+	}
+
+	// Проверяем, что нет дубликатов позиций
+	for i := 0; i < total; i++ {
+		for j := i + 1; j < total; j++ {
+			if positions[i].Distance(positions[j]) < 0.1 {
+				t.Errorf("Positions %d and %d are too close: %v and %v", i, j, positions[i], positions[j])
+			}
+		}
+	}
+}
+
+func TestCalculateAdaptiveFormationTarget_HighAltitude(t *testing.T) {
+	center := utils.NewVector3D(0, 50, 0) // Высоко
+	radius := 10.0
+	groundLevel := 0.0
+
+	pos := CalculateAdaptiveFormationTarget(center, 0, 100, radius, groundLevel)
+
+	if pos == nil {
+		t.Fatal("Position is nil")
+	}
+
+	// На большой высоте должна быть обычная сфера
+	distance := center.Distance(pos)
+	if math.Abs(distance-radius) > 0.1 {
+		t.Errorf("At high altitude, should be full sphere: distance=%f, expected=%f", distance, radius)
+	}
+}
+
+func TestCalculateAdaptiveFormationTarget_LowAltitude(t *testing.T) {
+	center := utils.NewVector3D(0, 5, 0) // Низко
+	radius := 10.0
+	groundLevel := 0.0
+
+	// Все точки должны быть над землей
+	for i := 0; i < 50; i++ {
+		pos := CalculateAdaptiveFormationTarget(center, i, 50, radius, groundLevel)
+		if pos.Y < groundLevel-0.01 {
+			t.Errorf("Drone %d is below ground: Y=%f", i, pos.Y)
+		}
+	}
+}
+
+func TestCalculateAdaptiveFormationTarget_Transition(t *testing.T) {
+	radius := 10.0
+	groundLevel := 0.0
+
+	// Проверяем плавный переход на разных высотах
+	heights := []float64{5, 10, 15, 20, 25, 30}
+	
+	for _, height := range heights {
+		center := utils.NewVector3D(0, height, 0)
+		allAboveGround := true
+		
+		for i := 0; i < 20; i++ {
+			pos := CalculateAdaptiveFormationTarget(center, i, 20, radius, groundLevel)
+			if pos.Y < groundLevel-0.01 {
+				allAboveGround = false
+			}
+		}
+		
+		if !allAboveGround && height < radius*2 {
+			t.Errorf("At height %f, some drones are below ground", height)
+		}
 	}
 }

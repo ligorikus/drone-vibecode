@@ -31,12 +31,13 @@ func (dc *DroneController) UpdatePosition(ctx context.Context, child *models.Chi
 	// Получаем текущую позицию дрона
 	currentPos := child.GetPosition()
 
-	// Рассчитываем целевую позицию в формировании (сфера вокруг главного дрона)
-	// Используем среднюю дистанцию как радиус сферы
+	// Рассчитываем целевую позицию с адаптивной формацией
+	// При приближении к земле сфера автоматически превращается в срезанную сферу
 	avgRadius := (dc.config.MinDistance + dc.config.MaxDistance) / 2
-	// Используем modulo для корректного индекса на сфере
 	droneIndex := child.ID % dc.config.DroneCount
-	targetPos := models.CalculateFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius)
+	
+	// Используем адаптивную целевую позицию с учетом уровня земли (groundLevel = 0)
+	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, 0)
 
 	// Вычисляем направление к целевой позиции
 	direction := utils.NewVector3D(
@@ -81,7 +82,9 @@ func (dc *DroneController) CalculateFormationDirection(child *models.ChildDrone,
 
 	avgRadius := (dc.config.MinDistance + dc.config.MaxDistance) / 2
 	droneIndex := child.ID % dc.config.DroneCount
-	targetPos := models.CalculateFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius)
+	
+	// Используем адаптивную целевую позицию
+	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, 0)
 
 	direction := utils.NewVector3D(
 		targetPos.X - currentPos.X,
@@ -98,26 +101,36 @@ func (dc *DroneController) CalculateFormationDirection(child *models.ChildDrone,
 // MoveDroneTowards перемещает дрона к цели с заданной скоростью
 func (dc *DroneController) MoveDroneTowards(child *models.ChildDrone, target *utils.Vector3D, deltaTime float64) {
 	currentPos := child.GetPosition()
-	
+
 	direction := utils.NewVector3D(
 		target.X - currentPos.X,
 		target.Y - currentPos.Y,
 		target.Z - currentPos.Z,
 	)
-	
+
 	distance := direction.Length()
-	
+
 	// Если близко к цели, останавливаемся
 	if distance < 0.1 {
 		child.SetVelocity(utils.Zero())
 		return
 	}
-	
+
 	direction = direction.Normalize()
 	child.ApplyDirection(direction)
 	child.Accelerate(deltaTime)
 	child.Update(deltaTime)
 	child.ClampY(0)
+}
+
+// MoveToFormationPosition перемещает дрона к позиции в адаптивной формации
+func (dc *DroneController) MoveToFormationPosition(child *models.ChildDrone, parent *models.Drone, deltaTime float64) {
+	parentPos := parent.GetPosition()
+	avgRadius := (dc.config.MinDistance + dc.config.MaxDistance) / 2
+	droneIndex := child.ID % dc.config.DroneCount
+	
+	targetPos := models.CalculateAdaptiveFormationTarget(parentPos, droneIndex, dc.config.DroneCount, avgRadius, 0)
+	dc.MoveDroneTowards(child, targetPos, deltaTime)
 }
 
 // KeepFormation поддерживает формирование вокруг главного дрона
